@@ -1,5 +1,6 @@
 package com.vuelos_springboot.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.io.Serializable;
@@ -34,5 +35,6 @@ public class Tarifa implements Serializable {
     // RELACIÓN MANY-TO-ONE (Bidireccional con Vuelo)
     @ManyToOne(fetch = FetchType.LAZY) // 5. Optimización de carga perezosa
     @JoinColumn(name = "numero_vuelo", nullable = false) // 4. Estándar SQL snake_case aplicado
+    @JsonIgnore
     private Vuelo vuelo;
 }

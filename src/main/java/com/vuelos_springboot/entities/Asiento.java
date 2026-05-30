@@ -1,5 +1,6 @@
 package com.vuelos_springboot.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.io.Serializable;
@@ -31,10 +32,12 @@ public class Asiento implements Base<Integer> {
     // --- RELACIÓN N:1 CON AVION (OBLIGATORIA) ---
     @ManyToOne(fetch = FetchType.LAZY) // 4. Optimización de carga perezosa
     @JoinColumn(name = "numero_avion", nullable = false) // 3. Estándar SQL snake_case aplicado
+    @JsonIgnore
     private Avion avion;
 
     // --- RELACIÓN 1:1 CON RESERVA (Inversa) ---
     @OneToOne(mappedBy = "asiento", fetch = FetchType.LAZY) // 4. Optimización de carga perezosa
+    @JsonIgnore
     private Reserva reserva;
 
     // 5. Método toString personalizado original respetado tal cual

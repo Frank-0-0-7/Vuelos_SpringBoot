@@ -16,7 +16,7 @@ public class Usuario extends Persona implements Serializable {
 
     // Columna autoincremental de la BD (Solo lectura para JPA)
     @Column(name = "numero_usuario", insertable = false, updatable = false) // 2. Convención snake_case aplicada
-    private int numeroUsuario;
+    private Integer numeroUsuario;
 
     @Column(name = "contrasenia_usuario", nullable = false) // 4. Corrección de caracteres especiales (ñ)
     private String contraseñaUsuario;

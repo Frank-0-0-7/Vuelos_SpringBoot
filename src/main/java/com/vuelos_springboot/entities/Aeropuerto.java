@@ -22,7 +22,7 @@ public class Aeropuerto implements Serializable {
     private String nombreAeropuerto;
 
     // RELACIÓN N:1 (Muchos aeropuertos están en una ciudad)
-    @ManyToOne(fetch = FetchType.LAZY) // 4. Configuración explícita de carga perezosa
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL) // 4. Configuración explícita de carga perezosa
     @JoinColumn(name = "nombre_ciudad", nullable = false) // 3. Estándar snake_case aplicado
     private Ciudad ciudad;
 
