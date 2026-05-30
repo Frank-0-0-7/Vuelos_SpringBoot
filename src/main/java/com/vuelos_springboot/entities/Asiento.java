@@ -11,7 +11,7 @@ import java.io.Serializable;
 @NoArgsConstructor        // 2. Lombok: Constructor vacío por defecto para JPA
 @AllArgsConstructor       // 2. Lombok: Constructor con todos los atributos
 @Builder                  // Patrón Builder para inicialización limpia en testing
-public class Asiento implements Serializable {
+public class Asiento implements Base<Integer> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,5 +42,10 @@ public class Asiento implements Serializable {
     public String toString() {
         // "1A (TURISTA)"
         return filaAsiento + "" + letraAsiento + " (" + claseAsiento + ")";
+    }
+
+    @Override
+    public Integer getId() {
+        return this.idAsiento; // Retornar su PK
     }
 }

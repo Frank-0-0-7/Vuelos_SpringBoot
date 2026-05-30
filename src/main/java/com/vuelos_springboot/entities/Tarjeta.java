@@ -11,7 +11,7 @@ import java.io.Serializable;
 @NoArgsConstructor        // 2. Lombok: Constructor vacío obligatorio para JPA
 @AllArgsConstructor       // 2. Lombok: Constructor con todos los atributos
 @Builder                  // Patrón Builder para inicialización limpia en pruebas y servicios
-public class Tarjeta implements Serializable {
+public class Tarjeta implements Base<String> {
 
     // PK es String (VARCHAR 16) - Sin @GeneratedValue porque se ingresa manualmente
     @Id
@@ -26,4 +26,10 @@ public class Tarjeta implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY) // 4. Optimización de carga perezosa explícita
     @JoinColumn(name = "numero_usuario", nullable = false) // 3. Estándar SQL snake_case aplicado
     private Usuario usuario;
+
+
+    @Override
+    public String getId() {
+        return this.numeroTarjeta;
+    }
 }

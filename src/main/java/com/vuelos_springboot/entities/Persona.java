@@ -12,7 +12,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-public class Persona implements Serializable {
+public class Persona implements Base<Integer> {
 
     @Id
     @Column(name = "dni_persona", nullable = false)
@@ -29,5 +29,10 @@ public class Persona implements Serializable {
     @Override
     public String toString() {
         return nombrePersona + " " + apellidoPersona + " (DNI: " + dniPersona + ")";
+    }
+
+    @Override
+    public Integer getId() {
+        return this.dniPersona; // Le hace creer al código del profesor que este es su ID
     }
 }

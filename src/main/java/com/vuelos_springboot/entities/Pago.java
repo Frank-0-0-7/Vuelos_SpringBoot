@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor     // 2. Lombok: Constructor vacío por defecto para JPA
 @AllArgsConstructor    // 2. Lombok: Constructor con todos los atributos
 @Builder               // Patrón Builder para inicialización limpia en pruebas y servicios
-public class Pago implements Serializable {
+public class Pago implements Base<Integer> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,4 +33,9 @@ public class Pago implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY) // 5. Optimización de carga perezosa
     @JoinColumn(name = "numero_tarjeta", nullable = false) // 3. Estándar SQL snake_case aplicado
     private Tarjeta tarjeta;
+
+    @Override
+    public Integer getId() {
+        return this.numeroPago; // Retornar su PK
+    }
 }

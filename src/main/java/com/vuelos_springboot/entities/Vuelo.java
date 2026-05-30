@@ -14,7 +14,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Vuelo implements Serializable {
+public class Vuelo implements Base<Integer> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "numero_vuelo") // 3. Estándar snake_case para columnas SQL
@@ -68,5 +68,10 @@ public class Vuelo implements Serializable {
         String destinoStr = (aeropuertoDestino != null) ? aeropuertoDestino.getNombreAeropuerto() : "???";
 
         return "Vuelo #" + this.numeroVuelo + " [" + origenStr + " -> " + destinoStr + "]";
+    }
+
+    @Override
+    public Integer getId() {
+        return this.numeroVuelo; // Retornar su PK
     }
 }
