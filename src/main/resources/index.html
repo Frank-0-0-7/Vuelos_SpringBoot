@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Reservas de Vuelos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -18,8 +17,7 @@
     <div class="row px-3">
         <div class="col-md-5 mb-4">
             <div class="card p-4">
-                <h3 class="mb-4 text-secondary border-bottom pb-2">📋 Datos del Pasajero y Pago</h3>
-
+                <h3 class="mb-4 text-secondary border-bottom pb-2">📋 Datos del Pasajero</h3>
                 <div id="alertContainer"></div>
 
                 <form id="reservaForm">
@@ -44,19 +42,19 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Contraseña del Sistema</label>
-                        <input type="password" id="pass" class="form-control" placeholder="Crear contraseña">
+                        <label class="form-label fw-bold">Contraseña</label>
+                        <input type="password" id="pass" class="form-control" placeholder="Clave de usuario">
                     </div>
 
-                    <h4 class="mt-4 text-secondary border-bottom pb-2">✈️ Selección de Vuelo</h4>
+                    <h4 class="mt-4 text-secondary border-bottom pb-2">✈️ Selección de Vuelo y Asiento</h4>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Vuelos Disponibles</label>
                         <select id="selectVuelo" class="form-select">
-                            <option value="">-- Seleccione un vuelo maestro --</option>
+                            <option value="">-- Seleccione un vuelo --</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Asientos Libres del Avión</label>
+                        <label class="form-label fw-bold">Asientos Libres (Filtrados por el Back)</label>
                         <select id="selectAsiento" class="form-select" disabled>
                             <option value="">-- Primero elija un vuelo --</option>
                         </select>
@@ -65,7 +63,7 @@
                     <h4 class="mt-4 text-secondary border-bottom pb-2">💳 Información Financiera</h4>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Número de Tarjeta</label>
-                        <input type="text" id="numTarjeta" class="form-control" placeholder="16 dígitos de la tarjeta" maxlength="16">
+                        <input type="text" id="numTarjeta" class="form-control" placeholder="16 dígitos numéricos" maxlength="16">
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -76,8 +74,8 @@
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Monto a Abonar ($)</label>
-                            <input type="text" id="montoStr" class="form-control" readonly placeholder="Se cargará según el vuelo">
+                            <label class="form-label fw-bold">Monto Total ($)</label>
+                            <input type="text" id="montoStr" class="form-control" readonly placeholder="Calculado automático">
                         </div>
                     </div>
 
@@ -89,7 +87,7 @@
         <div class="col-md-7">
             <div class="card p-4">
                 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
-                    <h3 class="text-secondary m-0">📊 Reservas en la Base de Datos (DTO)</h3>
+                    <h3 class="text-secondary m-0">📊 Reservas Registradas (DTO)</h3>
                     <button id="btnActualizar" class="btn btn-outline-secondary btn-sm">🔄 Sincronizar Grilla</button>
                 </div>
                 <div class="table-responsive">
@@ -104,11 +102,7 @@
                             <th>Monto Total</th>
                         </tr>
                         </thead>
-                        <tbody id="tablaReservasBody">
-                        <tr>
-                            <td colspan="6" class="text-center text-muted py-4">No hay transacciones registradas o servidor apagado.</td>
-                        </tr>
-                        </tbody>
+                        <tbody id="tablaReservasBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -116,122 +110,114 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
     const API_BASE = "http://localhost:9000/api/v1";
-    let listaVuelosGlobal = []; // Almacenará los datos completos para evitar llamadas repetidas
+    let vuelosCached = [];
 
-    // Al cargar la página web, inicializamos los selectores y la grilla de DTOs
-    document.addEventListener("DOMContentLoaded", () => {
-        cargarVuelos();
-        cargarGrillaReservas();
+    // Al iniciar, cargamos los datos básicos
+    document.addEventListener("DOMContentLoaded", async () => {
+        await cargarVuelosSelector();
+        await cargarGrillaReservas();
     });
 
-    // 1. TRAER LOS VUELOS MAESTROS Y LLENAR EL SELECTOR
-    async function cargarVuelos() {
+    // 1. CARGAR SELECTOR DE VUELOS DESDE EL GET GENERAL
+    async function cargarVuelosSelector() {
         try {
-            const respuesta = await fetch(`${API_BASE}/vuelos`);
-            if (!respuesta.ok) throw new Error("Error de red");
-            listaVuelosGlobal = await respuesta.json();
-
+            const res = await fetch(`${API_BASE}/vuelos`);
+            vuelosCached = await res.json();
             const selectVuelo = document.getElementById("selectVuelo");
-            selectVuelo.innerHTML = '<option value="">-- Seleccione un vuelo maestro --</option>';
+            selectVuelo.innerHTML = '<option value="">-- Seleccione un vuelo --</option>';
 
-            listaVuelosGlobal.forEach(v => {
+            vuelosCached.forEach(v => {
                 const opt = document.createElement("option");
                 opt.value = v.numeroVuelo;
-                opt.textContent = `Vuelo #${v.numeroVuelo}: ${v.aeropuertoOrigen.nombreAeropuerto} ➡️ ${v.aeropuertoDestino.nombreAeropuerto} (${v.aerolinea.nombreAerolinea})`;
+                opt.textContent = `Vuelo #${v.numeroVuelo}: ${v.aeropuertoOrigen.nombreAeropuerto} ➡️ ${v.aeropuertoDestino.nombreAeropuerto}`;
                 selectVuelo.appendChild(opt);
             });
         } catch (err) {
-            mostrarAlerta("No se pudo conectar con el Backend de Spring Boot. ¿XAMPP e IntelliJ están encendidos?", "danger");
+            mostrarAlerta("Error al conectar con Spring Boot. Verifique la consola.", "danger");
         }
     }
 
-    // EVENTO: Cuando cambian el vuelo, se cargan sus asientos y se calcula el monto automáticamente en el Front
-    document.getElementById("selectVuelo").addEventListener("change", (e) => {
-        const idVueloSelected = parseInt(e.target.value);
+    // 2. ESCUCHAR EL CAMBIO DE VUELO PARA CALCULAR MONTO Y LLAMAR AL NUEVO ENDPOINT
+    document.getElementById("selectVuelo").addEventListener("change", async (e) => {
+        const idVuelo = e.target.value;
         const selectAsiento = document.getElementById("selectAsiento");
         const inputMonto = document.getElementById("montoStr");
 
-        if (!idVueloSelected) {
+        if (!idVuelo) {
             selectAsiento.innerHTML = '<option value="">-- Primero elija un vuelo --</option>';
             selectAsiento.disabled = true;
             inputMonto.value = "";
             return;
         }
 
-        // Buscamos el vuelo seleccionado en nuestra lista global en memoria
-        const vueloObj = listaVuelosGlobal.find(v => v.numeroVuelo === idVueloSelected);
-
-        // Cargamos el asiento del avión maestro (Como el import.sql mete 1 asiento por avión, cargamos ese)
-        selectAsiento.innerHTML = '';
-        if(vueloSectorTieneAsientos(vueloObj)) {
-            // Simulamos mapeo dinámico de asientos del avión
-            const optAsiento = document.createElement("option");
-            // Para propósitos de este catálogo el idAsiento mapea secuencialmente (1 al 5)
-            optAsiento.value = vueloObj.numeroVuelo;
-            optAsiento.textContent = `Fila ${vueloObj.numeroVuelo} - Asiento A (BUSINESS/TURISTA)`;
-            selectAsiento.appendChild(optAsiento);
-            selectAsiento.disabled = false;
+        // Cargamos el monto del precio basándonos en la caché local
+        const vueloObj = vuelosCached.find(v => v.numeroVuelo == idVuelo);
+        if (vueloObj && vueloObj.tarifas.length > 0) {
+            const t = vueloObj.tarifas[0];
+            inputMonto.value = (parseFloat(t.precioTarifa) + parseFloat(t.impuestoTarifa)).toFixed(2);
         }
 
-        // Cargamos el precio total basándonos en la tarifa del vuelo maestro de la BD
-        if (vueloObj.tarifas && vueloObj.tarifas.length > 0) {
-            const tarifa = vueloObj.tarifas[0];
-            const total = parseFloat(tarifa.precioTarifa) + parseFloat(tarifa.impuestoTarifa);
-            inputMonto.value = total.toFixed(2);
+        // Llamamos al endpoint de SQL inteligente para traer asientos verdaderamente libres
+        try {
+            const res = await fetch(`${API_BASE}/vuelos/${idVuelo}/asientos-libres`);
+            const asientosLibres = await res.json();
+
+            selectAsiento.innerHTML = '<option value="">-- Seleccione un asiento disponible --</option>';
+
+            if (asientosLibres.length === 0) {
+                selectAsiento.innerHTML = '<option value="">🚨 Vuelo Completo (Sin asientos libres)</option>';
+                selectAsiento.disabled = true;
+                return;
+            }
+
+            asientosLibres.forEach(a => {
+                const opt = document.createElement("option");
+                opt.value = a.idAsiento;
+                opt.textContent = `Fila ${a.filaAsiento} - Asiento ${a.letraAsiento} (${a.claseAsiento})`;
+                selectAsiento.appendChild(opt);
+            });
+            selectAsiento.disabled = false;
+
+        } catch (err) {
+            console.error("Error al traer asientos libres desde el Backend.", err);
         }
     });
 
-    function vueloSectorTieneAsientos(vuelo) {
-        return vuelo && vuelo.avion;
-    }
-
-    // 2. EQUILIBRIO DE VALIDACIONES EXCLUSIVAS EN EL FRONT-END (Primera línea de defensa)
-    function validarFormularioFront() {
+    // 3. VALIDACIÓN FRONT-END (Primera línea de defensa requerida por la cátedra)
+    function validarFormulario() {
         const dni = document.getElementById("dniStr").value.trim();
         const email = document.getElementById("email").value.trim();
         const nombre = document.getElementById("nombre").value.trim();
         const apellido = document.getElementById("apellido").value.trim();
         const pass = document.getElementById("pass").value.trim();
+        const tarjeta = document.getElementById("numTarjeta").value.trim();
         const vuelo = document.getElementById("selectVuelo").value;
         const asiento = document.getElementById("selectAsiento").value;
-        const tarjeta = document.getElementById("numTarjeta").value.trim();
 
-        // Validación de campos vacíos
-        if (!dni || !email || !nombre || !apellido || !pass || !vuelo || !asiento || !tarjeta) {
+        if (!dni || !email || !nombre || !apellido || !pass || !tarjeta || !vuelo || !asiento) {
             return "🛑 Validación Front: Todos los campos del formulario son obligatorios.";
         }
-        // Validación de formato numérico de DNI
         if (isNaN(dni) || dni.length < 7) {
-            return "🛑 Validación Front: El DNI debe ser un número válido de al menos 7 dígitos.";
+            return "🛑 Validación Front: El DNI introducido debe ser un número válido.";
         }
-        // Validación de formato de Tarjeta de Crédito/Débito
         if (isNaN(tarjeta) || tarjeta.length !== 16) {
-            return "🛑 Validación Front: El número de tarjeta debe contener exactamente 16 dígitos numéricos.";
+            return "🛑 Validación Front: El número de tarjeta debe contener exactamente 16 dígitos.";
         }
-        // Validación básica de estructura de email
-        if (!email.includes("@") || !email.includes(".")) {
-            return "🛑 Validación Front: Por favor introduce un correo electrónico válido.";
-        }
-
-        return null; // Todo en orden para viajar al Backend
+        return null;
     }
 
-    // 3. PROCESAR EL POST CON LA RESERVA COMPLETA
+    // 4. ENVIAR LA COMPRA AL POSTMAN WEB (POST)
     document.getElementById("reservaForm").addEventListener("submit", async (e) => {
-        e.preventDefault(); // Detiene el envío automático clásico
+        e.preventDefault();
 
-        // Ejecutamos primero la validación del Front-End requerida por tu profesor
-        const errorFront = validarFormularioFront();
+        const errorFront = validarFormulario();
         if (errorFront) {
             mostrarAlerta(errorFront, "warning");
             return;
         }
 
-        // Si el Front dio luz verde, armamos el JSON estructurado para el controlador REST
         const payload = {
             dniStr: document.getElementById("dniStr").value.trim(),
             nombre: document.getElementById("nombre").value.trim(),
@@ -246,86 +232,65 @@
         };
 
         try {
-            const respuesta = await fetch(`${API_BASE}/reservas/realizar-completa`, {
+            const res = await fetch(`${API_BASE}/reservas/realizar-completa`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
+            const data = await res.json();
 
-            const resultado = await respuesta.json();
-
-            if (respuesta.ok) {
-                // Estado 200: Éxito total
-                mostrarAlerta(`✅ ${resultado.mensaje}`, "success");
+            if (res.ok) {
+                mostrarAlerta(`✅ ${data.mensaje}`, "success");
                 document.getElementById("reservaForm").reset();
                 document.getElementById("selectAsiento").disabled = true;
-                cargarGrillaReservas(); // Refrescamos la tabla al lado automáticamente
+                // Forzamos al selector a actualizar los asientos libres en vivo
+                document.getElementById("selectVuelo").dispatchEvent(new Event('change'));
+                await cargarGrillaReservas();
             } else {
-                // Estado 400: Atrapamos el error lógico lanzado por tu algoritmo del Backend
-                mostrarAlerta(`❌ Error Backend: ${resultado.error}`, "danger");
+                mostrarAlerta(`❌ Servidor Backend reporta: ${data.error}`, "danger");
             }
         } catch (err) {
-            mostrarAlerta("❌ Error crítico en la red al intentar conectar con el servidor.", "danger");
+            mostrarAlerta("Error crítico en la comunicación de red.", "danger");
         }
     });
 
-    // 4. TRAER LOS DTOS Y REDIBUJAR LA GRILLA WEB LATERAL
+    // 5. RENDERIZAR TABLA DE RESERVAS DTO
     async function cargarGrillaReservas() {
         try {
-            const respuesta = await fetch(`${API_BASE}/reservas/tabla-web`);
-            if (!respuesta.ok) throw new Error();
-            const dtos = await respuesta.json();
-
+            const res = await fetch(`${API_BASE}/reservas/tabla-web`);
+            const dtos = await res.json();
             const tbody = document.getElementById("tablaReservasBody");
             tbody.innerHTML = "";
 
             if (dtos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No hay reservas procesadas en el sistema aún.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3">Sin transacciones registradas.</td></tr>';
                 return;
             }
 
             dtos.forEach(r => {
-                const fila = document.createElement("tr");
-                fila.innerHTML = `
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
                     <td><span class="badge bg-secondary"># ${r.numeroReserva}</span></td>
-                    <td>
-                        <strong class="text-dark">${r.apellido}, ${r.nombre}</strong><br>
-                        <small class="text-muted">DNI: ${r.dni}</small>
-                    </td>
-                    <td>
-                        <span class="text-primary fw-bold">✈️ Vuelo ${r.numeroVuelo}</span> ➡️ ${r.ciudadDestino}<br>
-                        <small class="text-muted">${r.aerolinea} | ${r.fechaSalida}</small>
-                    </td>
-                    <td>
-                        <span class="badge bg-info text-dark">Fila ${r.fila} - ${r.letra}</span><br>
-                        <small class="text-muted">Avión: ${r.numeroAvion}</small>
-                    </td>
-                    <td>
-                        <span class="text-success fw-bold">💳 ${r.tipoTarjeta}</span><br>
-                        <small class="text-muted">**** **** **** ${r.numeroTarjeta.slice(-4)}</small>
-                    </td>
-                    <td class="fw-bold text-end text-success">$ ${parseFloat(r.montoTotal).toLocaleString('es-AR', {minimumFractionDigits:2})}</td>
+                    <td><strong>${r.apellido}, ${r.nombre}</strong><br><small class="text-muted">DNI: ${r.dni}</small></td>
+                    <td><span class="text-primary fw-bold">Vuelo ${r.numeroVuelo}</span> ➡️ ${r.ciudadDestino}<br><small class="text-muted">${r.fechaSalida}</small></td>
+                    <td><span class="badge bg-info text-dark">Fila ${r.fila} - ${r.letra}</span></td>
+                    <td><span class="text-success fw-bold">${r.tipoTarjeta}</span><br><small class="text-muted">****${r.numeroTarjeta.slice(-4)}</small></td>
+                    <td class="fw-bold text-success">$ ${r.montoTotal}</td>
                 `;
-                tbody.appendChild(fila);
+                tbody.appendChild(tr);
             });
         } catch (err) {
-            console.log("Error al refrescar la tabla relacional.");
+            console.log("Error al refrescar la tabla del Front.");
         }
     }
 
-    // Botón de sincronización manual de la grilla
     document.getElementById("btnActualizar").addEventListener("click", cargarGrillaReservas);
 
-    // Helper para pintar las alertas en pantalla usando estilos de Bootstrap
-    function mostrarAlerta(mensaje, tipo) {
-        const contenedor = document.getElementById("alertContainer");
-        contenedor.innerHTML = `
+    function mostrarAlerta(msg, tipo) {
+        document.getElementById("alertContainer").innerHTML = `
             <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
-                ${mensaje}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        `;
-        // Hacemos scroll suave hacia arriba para que el usuario lea la alerta de validación
+                ${msg} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 </script>
